@@ -190,25 +190,26 @@ void removeArvore(arvore **tree, char *str){
 					}else{
 						if((*tree)->pai->dir == (*tree)){
 							irmao = (*tree)->pai->esq;
-							if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){
-								irmao->cor = RED;
-								(*tree)->pai->cor = BLACK;
-							}else if(irmao->cor == BLACK && irmao->esq->cor == RED){
-								irmao->cor = RED;
-								irmao->esq->cor = BLACK;
-								(*tree)->pai->cor = BLACK;
-								rotacaoEsquerda(&((*tree)->pai));
+							if(irmao->cor == RED){ /*caso 1: irmao eh vermelho*/
+								irmaoRED(&(irmao), &((*tree)->pai));
+							}else if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){/*caso 2: irmao preto com os dois filhos pretos*/
+								irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
+								free(*tree);
+							}else if(){
+							}else if(irmao->cor == BLACK && irmao->esq->cor == RED){ /*caso 4: irmao preto e filho mais distante do no vermelho*/
+								irmaoBlackfilhoRed(&(irmao), &((irmao)->esq), &((*tree)->pai));
+								free(*tree);	
 							}
 						}else{
 							irmao = (*tree)->pai->dir;
-							if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){
-								irmao->cor = RED;
-								(*tree)->pai->cor = BLACK;
+							if(irmao->cor == RED){
+								irmaoRED(&(irmao), &((*tree)->pai));
+							}else if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){
+								irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
+								free(*tree);
 							}else if(irmao->cor == BLACK && irmao->dir->cor == RED){
-								irmao->cor = RED;
-								irmao->dir->cor = BLACK;
-								(*tree)->pai->cor = BLACK;
-								rotacaoDireita(&((*tree)->pai));
+								irmaoBlackfilhoRed(&(irmao), &((irmao)->dir), &((*tree)->pai));
+								free(*tree);
 							}
 						}
 					}
@@ -239,6 +240,36 @@ void removeArvore(arvore **tree, char *str){
 		else if(strcmp(str, (*tree)->palavra) > 0)/*se a palavra for maior lexicograficamento eu busco na subarvore direita o elemento que vou remover*/
 			removeArvore((&(*tree)->dir), str);
 	}
+}
+
+void irmaoRED(arvore **irmao, arvore **pai){
+	(*irmao)->cor = BLACK;
+	(*pai)->cor = RED;
+	
+	if((*pai)->dir == (*irmao))
+		rotacaoDireita(pai);
+	else
+		rotacaoEsquerda(pai);
+		
+	if((*irmao)->cor == BLACK && (*irmao)->esq->cor == RED)
+		irmaoBlackfilhoRed(irmao, &(*irmao)->esq, pai);
+	else if((*irmao)->cor == BLACK && (*irmao)->dir->cor == RED)
+		irmaoBlackfilhoRed(irmao, &(*irmao)->dir, pai);
+}
+
+void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai){
+	(*irmao)->cor = RED;
+	(*fIrmao)->cor = BLACK;
+	(*pai)->cor = BLACK;
+	if((*irmao)->dir == (*fIrmao))
+		rotacaoDireita(pai);
+	else
+		rotacaoEsquerda(pai);
+}
+
+void irmaoBlackfilhosBlack(arvore **irmao, arvore **pai){
+	(*irmao)->cor = RED;
+	(*pai)->cor = BLACK;
 }
 
 void remove_sinonimo(arvore **tree, char *str1, char *str2){
