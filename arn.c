@@ -178,54 +178,70 @@ void removeArvore(arvore **tree, char *str){
 				if((*tree)->pai == NULL){ /*remocao do no raiz*/
 					free(*tree); /*se for uma folha, removo direto o elemento*/
 				     (*tree) = NULL; 
+				     printf("raiz\n");
 				}else{
 					if((*tree)->cor == RED){ /*se for um no folha e for vermelho, apenas removo e faco o pai apontar pra nulo*/
 						if((*tree)->pai->esq == *tree){
 							free(*tree);
 							(*tree)->pai->esq = NULL;
+							printf("filho vermelho esq\n");
 						}else{
 							free(*tree);
 							(*tree)->pai->dir = NULL;
+							printf("filho vermelho dir\n");
 						}
 					}else{
 						if((*tree)->pai->dir == (*tree)){
 							irmao = (*tree)->pai->esq;
 							if(irmao->cor == RED){ /*caso 1: irmao eh vermelho*/
 								irmaoRED(&(irmao), &((*tree)->pai));
-							}else if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){/*caso 2: irmao preto com os dois filhos pretos*/
+								free(*tree);
+								printf("caso 1 esquerdo\n");
+							}else if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){/*caso2:irmao preto e os 2 filhos pretos*/
 								irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
 								free(*tree);
-							}else if(){
+								printf("caso 2 esquerdo\n");
+							}else if(irmao->cor == BLACK && irmao->dir->cor == RED && irmao->esq->cor == BLACK){/*caso3:irmao preto e filho mais perto vermelho*/
+								irmaoBlackfilhosRedBlack(&(irmao), &((irmao)->dir), &((*tree)->pai));
+								free(*tree);
+								printf("caso 3 esquerdo\n");
 							}else if(irmao->cor == BLACK && irmao->esq->cor == RED){ /*caso 4: irmao preto e filho mais distante do no vermelho*/
 								irmaoBlackfilhoRed(&(irmao), &((irmao)->esq), &((*tree)->pai));
-								free(*tree);	
+								free(*tree);
+								printf("caso 4 esquerdo\n");
 							}
 						}else{
 							irmao = (*tree)->pai->dir;
 							if(irmao->cor == RED){
 								irmaoRED(&(irmao), &((*tree)->pai));
+								free(*tree);
+								printf("caso 1 direito\n");
 							}else if(irmao->cor == BLACK && irmao->dir->cor == BLACK && irmao->esq->cor == BLACK){
 								irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
 								free(*tree);
+								printf("caso 2 direito\n");
+							}else if(irmao->cor == BLACK && irmao->esq->cor == RED && irmao->dir->cor == BLACK){
+								irmaoBlackfilhosRedBlack(&(irmao), &((irmao)->esq), &((*tree)->pai));
+								free(*tree);
+								printf("caso 3 direito\n");
 							}else if(irmao->cor == BLACK && irmao->dir->cor == RED){
 								irmaoBlackfilhoRed(&(irmao), &((irmao)->dir), &((*tree)->pai));
 								free(*tree);
+								printf("caso 4 direito\n");
 							}
 						}
 					}
 				}
 			}else if((*tree)->esq == NULL){ /*remocao para no com um filho a direita*/
-				strcpy((*tree)->palavra, (*tree)->dir->palavra); /*faço o no receber seu filho*/
-				strcpy((*tree)->idioma, (*tree)->dir->idioma);
-				(*tree)->primeiro_conceito = (*tree)->dir->primeiro_conceito;
-				free((*tree)->dir); /*removo o filho direito*/
-				(*tree)->dir = NULL; /*faco o filho do q ser nulo*/
+				(*tree) = (*tree)->dir; /*faço o no receber seu filho*/
+				q->dir = NULL; /*faco o filho do q ser nulo*/
+				free(q); /*removo o q*/
+				printf("1filho esquerdo\n");
 			}else if((*tree)->dir == NULL){ /*remocao para no com um filho a esquerda*/
-				strcpy((*tree)->palavra, (*tree)->esq->palavra); /*faço o no receber seu filho*/
-				strcpy((*tree)->idioma, (*tree)->esq->idioma);
-				(*tree)->primeiro_conceito = (*tree)->esq->primeiro_conceito;
-				free((*tree)->esq); /*removo o fillho esquerdo*/
-				(*tree)->esq = NULL; /*faco o filho do q ser nulo*/
+				(*tree) = (*tree)->esq; /*faço o no receber seu filho*/
+				q->esq = NULL; /*faco o filho do q ser nulo*/
+				free(q);
+				printf("1filho direito\n");
 			}else{ /*remocao para no com 2 filhos*/
 				q = (*tree)->esq; /*o q recebe o filho esquerdo do no que vou remover*/
 				while(q->dir != NULL) /*procuro o maior elemento mais a esquerda do no*/
@@ -233,6 +249,7 @@ void removeArvore(arvore **tree, char *str){
 				strcpy((*tree)->palavra, q->palavra); /*passo as informacoes do no que eu encontrei para o no que vou remover*/
 				strcpy((*tree)->idioma, q->idioma);
 				(*tree)->primeiro_conceito = q->primeiro_conceito;
+				printf("2 filhos\n");
 				removeArvore((&(*tree)->esq), (*tree)->palavra); /*chamo a funcao pra remover o no que troquei as informacoes*/
 			}	
 		}else if(strcmp(str, (*tree)->palavra) < 0) /*se a palavra for menor lexicograficamento eu busco na subarvore esquerda o elemento que vou remover*/
@@ -242,7 +259,7 @@ void removeArvore(arvore **tree, char *str){
 	}
 }
 
-void irmaoRED(arvore **irmao, arvore **pai){
+void irmaoRED(arvore **irmao, arvore **pai){ /*caso 1*/
 	(*irmao)->cor = BLACK;
 	(*pai)->cor = RED;
 	
@@ -250,14 +267,37 @@ void irmaoRED(arvore **irmao, arvore **pai){
 		rotacaoDireita(pai);
 	else
 		rotacaoEsquerda(pai);
-		
+	
+	if((*irmao)->cor == BLACK && (*irmao)->dir->cor == RED && (*irmao)->esq->cor == BLACK)
+		irmaoBlackfilhosRedBlack(irmao, &(*irmao)->dir, pai);
+	if((*irmao)->cor == BLACK && (*irmao)->esq->cor == RED && (*irmao)->dir->cor == BLACK)
+		irmaoBlackfilhosRedBlack(irmao, &(*irmao)->esq, pai);
 	if((*irmao)->cor == BLACK && (*irmao)->esq->cor == RED)
 		irmaoBlackfilhoRed(irmao, &(*irmao)->esq, pai);
-	else if((*irmao)->cor == BLACK && (*irmao)->dir->cor == RED)
+	if((*irmao)->cor == BLACK && (*irmao)->dir->cor == RED)
 		irmaoBlackfilhoRed(irmao, &(*irmao)->dir, pai);
 }
 
-void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai){
+void irmaoBlackfilhosBlack(arvore **irmao, arvore **pai){ /*caso 2*/
+	(*irmao)->cor = RED;
+	(*pai)->cor = BLACK;
+}
+
+void irmaoBlackfilhosRedBlack(arvore **irmao, arvore **fIrmao, arvore **pai){ /*caso 3*/
+	(*irmao)->cor = RED;
+	(*fIrmao)->cor = BLACK;
+	if((*irmao)->dir == (*fIrmao))
+		rotacaoDireita(pai);
+	else
+		rotacaoEsquerda(pai);
+		
+	if((*irmao)->cor == BLACK && (*irmao)->esq->cor == RED)
+		irmaoBlackfilhoRed(irmao, &(*irmao)->esq, pai);
+	if((*irmao)->cor == BLACK && (*irmao)->dir->cor == RED)
+		irmaoBlackfilhoRed(irmao, &(*irmao)->dir, pai);
+}
+
+void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai){ /*caso 4*/
 	(*irmao)->cor = RED;
 	(*fIrmao)->cor = BLACK;
 	(*pai)->cor = BLACK;
@@ -265,11 +305,6 @@ void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai){
 		rotacaoDireita(pai);
 	else
 		rotacaoEsquerda(pai);
-}
-
-void irmaoBlackfilhosBlack(arvore **irmao, arvore **pai){
-	(*irmao)->cor = RED;
-	(*pai)->cor = BLACK;
 }
 
 void remove_sinonimo(arvore **tree, char *str1, char *str2){
@@ -286,11 +321,10 @@ void remove_sinonimo(arvore **tree, char *str1, char *str2){
 				p = p->prox_sin;
 			}
 			if (p != NULL){ /*se ele estiver na lista eu verifico se ele é o primeiro sinonimo, se for o primeiro eu faco a primeira posicao da lista de sinonimo receber o sinonimo seguinte do que eu vou remover, e se ele nao for o primeiro, faco o sinonimo anterior receber o sinonimo seguinte do que vou remover*/
-				if(s != NULL){
+				if(s != NULL)
 					s->prox_sin = p->prox_sin;
-				}else{
+				else
 					(*tree)->primeiro_conceito = p->prox_sin;
-				}
 				free(p); /*removo o sinonimo*/
 			}
 			if(q != NULL && q->primeiro_conceito == NULL) /*verifico se a palavra ficou sem sinonimo, se ficou eu chamo a funcao para remover ela*/
