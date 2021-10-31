@@ -47,10 +47,10 @@ void conserta(arvore **tree);
 void removeArvore(arvore **tree, char *str);
 void remove_sinonimo(arvore **tree, char *str1, char *str2);
 
-void irmaoRED(arvore **irmao, arvore **pai);
-void irmaoBlackfilhosBlack(arvore **irmao, arvore **pai);
-void irmaoBlackfilhosRedBlack(arvore **irmao, arvore **fIrmao, arvore **pai);
-void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai);
+void  irmaoRED (arvore ** irmao, arvore ** pai);
+void  irmaoBlackfilhosBlack (arvore ** irmao, arvore ** pai);
+void  irmaoBlackfilhosRedBlack (arvore ** irmao, arvore ** fIrmao, arvore ** pai);
+void  irmaoBlackfilhoRed (arvore ** irmao, arvore ** fIrmao, arvore ** pai);
 
 void busca(arvore *tree, char *str);
 
