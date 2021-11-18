@@ -33,7 +33,8 @@ arvore *aloca(arvore *pPai, char *str, char *id, char *s){
 	if(nova != NULL){ /*se consegui alocar o espaço faço o novo nó receber o conteudo (palavra, sinonimo e idioma)*/
 		strcpy(nova->palavra, str);
 		strcpy(nova->idioma, id);
-		nova->cor = RED;
+		nova->cor = RED; /*sempre o noh inserido eh vermelho*/
+		nova->existe = 0; /*inicialmente eh 0 porque ele existe na arvore*/
 		nova->primeiro_conceito = aloca_sinonimo(s);
 		nova->esq = NULL;
 		nova->dir = NULL;
@@ -49,13 +50,18 @@ void insereArvore(arvore **tree, arvore *pai, arvore **raiz, char *str, char *id
 
 	if(*tree == NULL){ /*se a arvore estiver vazia ou o local que quero alocar estiver vazio, aloco um novo no na arvore*/
 		*tree = aloca(pai, str, id, sin);
+	}else if((*tree)->existe == 1){ /*se o local que estou ja foi removido, passo as novas informacoes para a posicao e defino ela como existente*/
+		strcpy((*tree)->palavra, str);
+		strcpy((*tree)->idioma, id);
+		(*tree)->primeiro_conceito = aloca_sinonimo(sin);
+		(*tree)->existe = 0;
 	}else if(strcmp(str, (*tree)->palavra) < 0){ /*se a nova palavra for menor lexicograficamente, chamo a função e faço o no ser inserido na subarvore esquerda*/
 		insereArvore((&(*tree)->esq), *tree, raiz, str, id, sin);
 		conserta((&(*tree)->esq));
 	}else if(strcmp(str, (*tree)->palavra) > 0){ /*se a nova palavra for maior lexicograficamente, chamo a função e faço o no ser inserido na subarvore direita*/
 		insereArvore((&(*tree)->dir), *tree, raiz, str, id, sin);
 		conserta((&(*tree)->dir));
-	}else if(strcmp(str, (*tree)->palavra) == 0){ /*se a palavra já existir, aloco somento o seu novo sinonimo*/
+	}else if(strcmp(str, (*tree)->palavra) == 0 && (*tree)->existe == 0){ /*se a palavra já existir e não estiver removida, aloco somento o seu novo sinonimo*/
 		if(strcmp(sin, (*tree)->primeiro_conceito->sinonimo) < 0){ /*se o primeiro sinonimo for menor lexicograficamente menor que o sinonimo ja inserido, insiro o novo na primeira posicao*/
 			nova = aloca_sinonimo(sin);
 			nova->prox_sin = (*tree)->primeiro_conceito;
@@ -72,48 +78,8 @@ void insereArvore(arvore **tree, arvore *pai, arvore **raiz, char *str, char *id
 		}
 	}
 	
-	if(*tree == *raiz)
+	if(*tree == *raiz) /*mudo a cor da raiz para preta*/
 		(*tree)->cor = BLACK;
-}
-
-arvore *nTio(arvore *tree){
-	arvore *avo = (tree->pai)->pai;
-	if (tree->pai == avo->esq)
-		return avo->dir;
-	else
-		return avo->esq;
-}
-
-void rotacaoDireita(arvore **tree){
-	arvore *u, *p;
-	p = (*tree);
-	
-	u = p->esq;
-	p->esq = u->dir;
-	u->dir = p;
-	u->pai = p->pai;
-	if(p->dir != NULL)
-		(p->dir)->pai = p;
-	p->pai = u;
-	u->cor = p->cor;
-	p->cor = RED;
-	*tree = u;
-}
-
-void rotacaoEsquerda(arvore **tree){
-	arvore *u, *p;
-	p = (*tree);
-	
-	u = p->dir;
-	p->dir = u->esq;
-	u->esq = p;
-	u->pai = p->pai;
-	if(p->esq != NULL)
-		(p->esq)->pai = p;
-	p->pai = u;
-	u->cor = p->cor;
-	p->cor = RED;
-	*tree = u;
 }
 
 void conserta(arvore **tree){
@@ -125,10 +91,10 @@ void conserta(arvore **tree){
 			tio = nTio(*tree); 
 			if(tio != NULL && tio->cor == RED){ /*Caso no eh rubro e o tio do no tambem eh rubro*/
 				avo = ((*tree)->pai)->pai;
-				(*tree)->pai->cor = BLACK;
-				tio->cor = BLACK;
+				(*tree)->pai->cor = BLACK; /*o pai vira preto*/
+				tio->cor = BLACK; /*o tio tambe vira preto*/
 				if(avo->pai != NULL) 
-					avo->cor = RED;
+					avo->cor = RED; /*e se o avor existir, vira vermelho*/
 			}else if(tio == NULL || tio->cor == BLACK){ /*tio ser preto ou nulo e o pai e o no serem vermelhos*/
 				if(avo != NULL){
 					if(avo->dir == tio){ /*tio eh filho direito do avo*/
@@ -152,13 +118,54 @@ void conserta(arvore **tree){
 	}
 }
 
+arvore *nTio(arvore *tree){ /*funcao para retornar o tio*/
+	arvore *avo = (tree->pai)->pai;
+	
+	if (tree->pai == avo->esq)
+		return avo->dir;
+	else
+		return avo->esq;
+}
+
+void rotacaoDireita(arvore **tree){
+	arvore *u, *p;
+	p = (*tree); /*p recebe o no que esta desbalanceado*/
+	
+	u = p->esq; /*u recebe o filho esquerdo do no desbalanceado*/
+	p->esq = u->dir; /*filho esquerdo do no desbalanceado passa a ser o filho direito do u*/
+	u->dir = p; /*o filho direito do u passa a ser o proprio p*/
+	u->pai = p->pai; /*o pai do u passar a ser o nó que era pai do p*/
+	if(p->dir != NULL)
+		(p->dir)->pai = p; /*se o p tiver filho na direita, o pai torna-se o p*/
+	p->pai = u; /*o pai do p agora eh o u*/
+	u->cor = p->cor; /*o u agora tem a cor que p tinha*/
+	p->cor = RED; /*p recebe a cor vermelha*/
+	*tree = u;
+}
+
+void rotacaoEsquerda(arvore **tree){
+	arvore *u, *p;
+	p = (*tree); /*p recebe o no que esta desbalanceado*/
+	
+	u = p->dir; /*u recebe o filho direito do no desbalanceado*/
+	p->dir = u->esq; /*filho direito do no desbalanceado passa a ser o filho esquerdo do u*/
+	u->esq = p; /*o filho esquerdo do u passa a ser o proprio p*/
+	u->pai = p->pai; /*o pai do u passar a ser o nó que era pai do p*/
+	if(p->esq != NULL)
+		(p->esq)->pai = p; /*se o p tiver filho na esquerda, o pai torna-se o p*/
+	p->pai = u; /*o pai do p agora eh o u*/
+	u->cor = p->cor; /*o u agora tem a cor que p tinha*/
+	p->cor = RED; /*p recebe a cor vermelha*/
+	*tree = u;
+}
+
 void busca(arvore *tree, char *str){
 	lista_sinonimo *q;
 
-	if(tree == NULL) /*se a palavra não existir na arvore ou a arvore estiver vazia eu retorno a mensagem*/
+	if(tree == NULL || tree->existe == 1) /*se a palavra tiver sido removida da arvore ou a arvore estiver vazia eu retorno a mensagem*/
 		printf("hein?\n");
 	else{
-		if(strcmp(str, tree->palavra) == 0){ /*se a palavra existir, imprimo seus respectivos sinonimos*/
+		if(strcmp(str, tree->palavra) == 0 && tree->existe == 0){ /*se a palavra existir, imprimo seus respectivos sinonimos*/
 			for(q = tree->primeiro_conceito; q != NULL; q = q->prox_sin)
 				printf("%s\n", q->sinonimo);
 		}else if(strcmp(str, tree->palavra) < 0) /*se a palavra for menor lexicograficamento eu busco na subarvore esquerda*/
@@ -169,116 +176,31 @@ void busca(arvore *tree, char *str){
 }
 
 void removeArvore(arvore **tree, char *str){
-	arvore *q, *irmao;
-	
+	arvore *q;
+
 	if((*tree) != NULL){/*se tiver elementos na arvore ou ainda nao cheguei ainda não cheguei ao fim da arvore*/
-		if(strcmp(str, (*tree)->palavra) == 0){ /*verifico se a palavra que quero remover eh a palavra que está na arvore*/
-			if(((*tree)->esq == NULL) && ((*tree)->dir == NULL)){
-				if((*tree)->pai == NULL){ /*remocao do no raiz*/
-					free(*tree); /*se for uma folha, removo direto o elemento*/
-				    (*tree) = NULL;
-				    printf("raiz\n");
-				}else{
-					if((*tree)->cor == RED){ /*se for um no folha e for vermelho, apenas removo e faco o pai apontar pra nulo*/
-						if((*tree)->pai->esq == *tree){
-							free(*tree);
-							(*tree)->pai->esq = NULL;
-							printf("aqui5\n");
-						}else{
-							free(*tree);
-							(*tree)->pai->dir = NULL;
-							printf("aqui6\n");
-						}
-					}else{
-						if((*tree)->pai->dir == (*tree)){
-							irmao = (*tree)->pai->esq;
-							printf("irmao esq\n");
-							if(irmao != NULL){
-								if(irmao->cor == RED){ /*caso 1: irmao eh vermelho*/
-									free(*tree);
-									irmaoRED(&(irmao), &((*tree)->pai));
-									printf("caso 1 esquerdo\n");
-								}
-								if(irmao->cor == BLACK){
-									if((irmao->esq->cor == BLACK || irmao->esq == NULL) && (irmao->dir->cor == BLACK || irmao->dir == NULL)){
-										free(*tree);
-										irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
-										printf("caso 2 dir\n");
-									}else if(irmao->dir->cor == RED){
-										free(*tree);
-										irmaoBlackfilhosRedBlack(&(irmao), &((irmao)->esq), &((*tree)->pai));
-										printf("caso 3 esq\n");
-									}else if(irmao->esq->cor == RED){ /*caso 4: irmao preto e filho mais distante do no vermelho*/
-										free(*tree);
-										irmaoBlackfilhoRed(&(irmao), &((irmao)->esq), &((*tree)->pai));
-										printf("caso 4 esquerdo\n");
-									}
-								}
-							}else{ /*caso o no não tenha irmao*/
-								(*tree)->pai->cor = BLACK;
-								(*tree)->pai->dir = NULL;
-								free(*tree);
-							}
-						}else{
-							irmao = (*tree)->pai->dir;
-							printf("irmao dir\n");
-							if(irmao != NULL){
-								if(irmao->cor == RED){
-									irmaoRED(&(irmao), &((*tree)->pai));
-									(*tree)->pai->esq = NULL;
-									free(*tree);
-									printf("caso 1 direito\n");
-								}else{
-									if((irmao->esq->cor == BLACK || irmao->esq == NULL) && (irmao->dir->cor == BLACK || irmao->dir == NULL)){
-										irmaoBlackfilhosBlack(&(irmao), &((*tree)->pai));
-										(*tree)->pai->esq = NULL;
-										free(*tree);
-										printf("caso 2 dir\n");
-									}else if(irmao->esq->cor == RED){
-										irmaoBlackfilhosRedBlack(&(irmao), &((irmao)->esq), &((*tree)->pai));
-										(*tree)->pai->esq = NULL;
-										free(*tree);
-										printf("caso 3 direito\n");
-									}else if(irmao->dir->cor == RED){
-										irmaoBlackfilhoRed(&(irmao), &((irmao)->dir), &((*tree)->pai));
-										(*tree)->pai->esq = NULL;
-										free(*tree);
-										printf("caso 4 direito\n");
-									}
-								}
-							}else{ /*caso o no não tenha irmao*/
-								(*tree)->pai->cor = BLACK;
-								(*tree)->pai->esq = NULL;
-								free(*tree);
-							}
-						}	
-					}
-				}
-			}else if((*tree)->esq == NULL){ /*remocao para no com um filho a direita*/
+		if((strcmp(str, (*tree)->palavra) == 0) && ((*tree)->existe == 0)){ /*verifico se a palavra que quero remover eh a palavra que está na arvore*/
+			if(((*tree)->esq == NULL || (*tree)->esq->existe == 1) && ((*tree)->dir == NULL || (*tree)->dir->existe == 1)){
+				(*tree)->existe = 1; /*marco como inexistente*/
+			}else if(((*tree)->esq == NULL) || ((*tree)->esq->existe == 1)){ /*remocao para no com um filho a direita*/
 				q = (*tree); /*faco q receber o elemento que quero remover*/
-				(*tree)->dir->pai = (*tree)->pai;
+				(*tree)->dir->pai = (*tree)->pai; /*o pai do filho direito agora eh o pai do noh que vai ser removido*/
 				(*tree) = (*tree)->dir; /*faço o no receber seu filho*/
-				free(q); /*removo o q*/
-				q->dir = NULL; /*faco o filho do q ser nulo*/
-				printf("aqui1\n");
-			}else if((*tree)->dir == NULL){ /*remocao para no com um filho a esquerda*/
+				q->existe = 1;
+				q->dir = NULL;
+			}else if(((*tree)->dir == NULL) || ((*tree)->dir->existe == 1)){ /*remocao para no com um filho a esquerda*/
 				q = (*tree); /*faco q receber o elemento que quero remover*/
-				(*tree)->esq->pai = (*tree)->pai;
+				(*tree)->esq->pai = (*tree)->pai; /*o pai do filho esquerdo agora eh o pai do noh que vai ser removido*/
 				(*tree) = (*tree)->esq; /*faço o no receber seu filho*/
-				free(q); /*removo o q*/
-				q->esq = NULL; /*faco o filho do q ser nulo*/
-				printf("aqui2\n");
-			}else{ /*remocao para no com 2 filhos*/
+				q->existe = 1;
+				q->esq = NULL;
+			}else if(((*tree)->dir->existe == 0) && ((*tree)->esq->existe == 0)){
 				q = (*tree)->esq; /*o q recebe o filho esquerdo do no que vou remover*/
-				while(q->dir != NULL) /*procuro o maior elemento mais a esquerda do no*/
+				while(q->dir != NULL && ((*tree)->existe == 0)) /*procuro o maior elemento mais a esquerda do no*/
 					q = q->dir;
 				strcpy((*tree)->palavra, q->palavra); /*passo as informacoes do no que eu encontrei para o no que vou remover*/
 				strcpy((*tree)->idioma, q->idioma);
 				(*tree)->primeiro_conceito = q->primeiro_conceito;
-				(*tree)->esq->pai = (*tree);
-				(*tree)->dir->pai = (*tree);
-				q->pai->esq = q->esq;
-				printf("2filhos\n");
 				removeArvore((&(*tree)->esq), (*tree)->palavra);
 			}
 		}else if(strcmp(str, (*tree)->palavra) < 0) /*se a palavra for menor lexicograficamento eu busco na subarvore esquerda o elemento que vou remover*/
@@ -288,75 +210,13 @@ void removeArvore(arvore **tree, char *str){
 	}
 }
 
-void irmaoRED(arvore **irmao, arvore **pai){ /*caso 1*/
-	(*irmao)->cor = BLACK;
-	(*pai)->cor = RED;
-	
-	if((*pai)->dir == (*irmao)){
-		rotacaoEsquerda(pai);
-		(*irmao) = (*irmao)->esq;
-	}else{
-		rotacaoDireita(pai);
-		(*irmao) = (*irmao)->dir;
-	}	
-
-	if((*irmao)->cor == BLACK){
-		
-		if((*irmao)->dir->cor == RED && (*irmao)->esq->cor == BLACK)
-			irmaoBlackfilhosRedBlack(irmao, &(*irmao)->dir, pai);
-		if((*irmao)->esq->cor == RED && (*irmao)->dir->cor == BLACK)
-			irmaoBlackfilhosRedBlack(irmao, &(*irmao)->esq, pai);
-		if((*irmao)->esq->cor == RED)
-			irmaoBlackfilhoRed(irmao, &(*irmao)->esq, pai);
-		if((*irmao)->dir->cor == RED)
-			irmaoBlackfilhoRed(irmao, &(*irmao)->dir, pai);
-	}
-}
-
-void irmaoBlackfilhosBlack(arvore **irmao, arvore **pai){ /*caso 2*/
-	(*irmao)->cor = RED;
-	(*pai)->cor = BLACK;
-}
-
-void irmaoBlackfilhosRedBlack(arvore **irmao, arvore **fIrmao, arvore **pai){ /*caso 3*/
-	(*irmao)->cor = RED;
-	(*fIrmao)->cor = BLACK;
-	
-	if((*irmao)->dir == (*fIrmao)){
-		rotacaoDireita(irmao);
-		(*irmao) = (*irmao)->esq;
-	}else{
-		rotacaoEsquerda(irmao);
-		(*irmao) = (*irmao)->dir;
-	}
-	
-	if((*irmao)->cor == BLACK){
-		if((*irmao)->esq->cor == RED)
-			irmaoBlackfilhoRed(irmao, &(*irmao)->esq, pai);
-		else
-			irmaoBlackfilhoRed(irmao, &(*irmao)->dir, pai);
-	}
-}
-
-void irmaoBlackfilhoRed(arvore **irmao, arvore **fIrmao, arvore **pai){ /*caso 4*/
-	
-	if((*pai)->dir == (*irmao))
-		rotacaoEsquerda(pai);
-	else
-		rotacaoDireita(pai);
-		
-	(*irmao)->cor = (*pai)->cor;
-	(*fIrmao)->cor = BLACK;
-	(*pai)->cor = BLACK;
-}
-
 void remove_sinonimo(arvore **tree, char *str1, char *str2){
 	arvore *q;
 	lista_sinonimo *p, *s;
 	s = NULL;
 	
 	if(*tree != NULL){ /*se tiver elementos na arvore ou ainda nao cheguei ainda não cheguei ao fim da arvore*/
-		if(strcmp(str1, (*tree)->palavra) == 0){ /*verifico se a palavra que quero remover eh a palavra que está na arvore*/
+		if((strcmp(str1, (*tree)->palavra) == 0) && ((*tree)->existe == 0)){ /*verifico se a palavra que quero remover eh a palavra que está na arvore*/
 			p = (*tree)->primeiro_conceito;
 			q = (*tree);
 			while (p != NULL && (strcmp(p->sinonimo, str2) != 0)){ /*procuro o sinonimo na lista de sinonimo*/
@@ -384,8 +244,8 @@ void lista_idioma(arvore *tree, char *id){
 	
 	if (tree != NULL){ /*verifico se a arvore nao eh nula*/
 		lista_idioma(tree->esq, id); /*vou ate a folha da subarvore esquerda*/
-		if(strcmp(id, tree->idioma) == 0){ /*verifico se o idioma eh o que quero*/
-			printf("%s(%d), pai(%s) : %s", tree->palavra, tree->cor, tree->pai->palavra, tree->primeiro_conceito->sinonimo); /*imprimo a palavra com seus sinonimos*/
+		if(strcmp(id, tree->idioma) == 0 && tree->existe == 0){ /*verifico se o idioma eh o que quero*/
+			printf("%s : %s", tree->palavra, tree->primeiro_conceito->sinonimo); /*imprimo a palavra com seus sinonimos*/
 			for(q = tree->primeiro_conceito->prox_sin; q != NULL; q = q->prox_sin)
 				printf(", %s", q->sinonimo);
 			printf("\n");
@@ -399,7 +259,7 @@ void lista_idioma_emIntervalo(arvore *tree, char *id, char *i, char *f){
 	
 	if (tree != NULL){ /*verifico se a arvore nao eh nula*/
 		lista_idioma_emIntervalo(tree->esq, id, i, f); /*vou ate a folha da subarvore esquerda*/
-		if((strcmp(id, tree->idioma) == 0)){ /*verifico se o idioma eh o que quero*/
+		if((strcmp(id, tree->idioma) == 0 && tree->existe == 0)){ /*verifico se o idioma eh o que quero*/
 			if((tree->palavra[0] >= i[0]) && (tree->palavra[0] <= f[0])){ /*verifico se a palavra esta entre as iniciais informadas*/
 				printf("%s : %s", tree->palavra, tree->primeiro_conceito->sinonimo); /*imprimo a palavra com seus sinonimos*/
 				for(q = tree->primeiro_conceito->prox_sin; q != NULL; q = q->prox_sin)
